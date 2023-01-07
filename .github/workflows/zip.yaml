@@ -1,0 +1,42 @@
+name: Build
+
+on: workflow_dispatch
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      # Token permission for release uploading
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Get current short commit hash
+        id: vars
+        shell: bash
+        run: |
+          echo "::set-output name=date::$(date +'%Y.%m.%d')"
+          echo "::set-output name=commit_hash::$(git rev-parse HEAD)"
+          echo "::set-output name=commit_hash_short::$(git rev-parse --short HEAD)"
+
+      - name: Archive into zip
+        uses: thedoctor0/zip-release@0.6.2
+        with:
+          type: 'zip'
+          filename: 'lit.zip'
+          path: 'commands deps libs ./*.lua'
+
+      - name: Upload Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: 'lit.zip'
+          tag: ${{ steps.vars.outputs.commit_hash_short }}
+          commit: ${{ steps.vars.outputs.commit_hash }}
+          allowUpdates: 'true'
+          body: lit.zip meant for direct luvi input
+
+      - name: Done.
+        run: echo "Done."
